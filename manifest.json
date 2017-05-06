@@ -1,0 +1,15 @@
+{
+  "name": "Represent",
+  "short_name": "Represent",
+  "start_url": "/?homescreen=1",
+  "display": "standalone",
+  "theme_color": "#4285f4",
+  "background_color": "#4285f4",
+  "icons": [
+    {
+      "src": "images/manifest/256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    }
+  ]
+}

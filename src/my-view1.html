@@ -1,0 +1,187 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-if.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../bower_components/iron-list/iron-list.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="my-view1">
+  <template>
+    <style include="shared-styles">
+       :host {
+        display: block;
+
+        padding: 10px;
+      }
+
+      .locationButton {
+        background: var(--app-primary-color);
+        color: white;
+        flex-grow: 1;
+      }
+
+      .buttonWrapper {
+        display: flex;
+        flex-direction: column;
+      }
+
+      paper-card {
+        width: 100%;
+        margin-bottom: 10px;
+        --paper-card-header-image-text: {
+          color: white;
+        }
+      }
+
+      paper-button {
+        color: var(--app-primary-color);
+      }
+
+      .card-actions paper-button {
+        font-size: 15px;
+      }
+
+      .description {
+        -webkit-margin-before: 0;
+      }
+
+      .moreInfo {
+        -webkit-margin-before: 0;
+        -webkit-margin-after: 0;
+      }
+
+      h3 {
+        text-align: center;
+      }
+
+      .verticalCenter {
+        align-items: center;
+        display: flex;
+        height: 20rem;
+        justify-content: center;
+      }
+
+      @media(min-width: 850px) {
+        .content {
+          margin-left: 15%;
+          margin-right: 15%;
+        }
+      }
+    </style>
+    <template is="dom-if" if="{{!gotLocation}}">
+      <div class="verticalCenter">
+        <div class="buttonWrapper">
+          <h3>Share your location to get your local representatives</h3>
+          <paper-button raised class="locationButton" on-tap="getAddress">Share Location</paper-button>
+        </div>
+      </div>
+    </template>
+
+    <div class="content">
+      <template is="dom-if" if="{{gotLocation}}">
+        <template is="dom-repeat" id="mainList" items="[[officialsData]]" as="official">
+          <div>
+            <paper-card heading="[[official.name]]">
+              <div class="card-content">
+                <p class="description">Party: [[official.party]]</p>
+
+                <div>
+                  <template is="dom-repeat" items="[[official.channels]]">
+                    <p class="moreInfo">[[item.type]]: [[item.id]]</p>
+                  </template>
+                </div>
+
+                <div>
+                  <template is="dom-repeat" items="[[official.phones]]">
+                    Phone: <a href="tel:[[item]]">[[item]]</a>
+                  </template>
+                </div>
+              </div>
+              <div class="card-actions">
+                <paper-button on-tap="share">
+                  Share
+                </paper-button>
+              </div>
+            </paper-card>
+          </div>
+        </template>
+      </template>
+    </div>
+
+    <paper-toast id="locationToast" text="Getting location..."></paper-toast>
+  </template>
+
+  <script>
+    class MyView1 extends Polymer.Element {
+      static get is() { return 'my-view1'; }
+
+      static get properties() {
+        return {
+          gotLocation: {
+            type: Boolean,
+            value: false
+          },
+          officialsData: {
+            type: Array,
+            value: null
+          }
+        }
+      }
+
+      getAddress() {
+        this.$.locationToast.open();
+
+        navigator.geolocation.getCurrentPosition((position) => {
+          console.log(position.coords.latitude, position.coords.longitude);
+
+          fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.coords.latitude},${position.coords.longitude}&key=AIzaSyD233ZyLFOIKH8VeaI3wcYrNowU5EXyk7o`).then((response) => {
+            return response.json();
+          }).then((data) => {
+            console.log(data);
+            this.getReps(data.results[0]);
+          })
+        });
+      }
+
+      getReps(data) {
+        fetch(`https://www.googleapis.com/civicinfo/v2/representatives?key=AIzaSyDLnE1tJVrVRKtWNOm02bgo-sahHTFE-DU&address=${data.formatted_address}&roles=legislatorUpperBody&roles=legislatorLowerBody`).then((response) => {
+          return response.json();
+        }).then((data) => {
+          console.log(data);
+          this.officialsData = data.officials;
+          this.gotLocation = true;
+        });
+      }
+
+      share($event) {
+        console.log($event.model.__data.official.phones[0]);
+        const official = $event.model.__data.official;
+
+        if (navigator.share !== undefined) {
+          navigator.share({
+            title: "Represent",
+            text: `Call ${official.name} today at ${official.phones[0]} and let your voice be heard!`,
+            url: window.location.href
+          }).then(() => console.log('Successful share'))
+            .catch(error => console.log('Error sharing:', error));
+        } else {
+          window.open(`http://twitter.com/share?text=Call @${official.channels[1].id} today at ${official.phones[0]} and let your voice be heard!&url=${window.location.href}&hashtags=Represent`)
+        }
+      }
+    }
+
+    window.customElements.define(MyView1.is, MyView1);
+  </script>
+</dom-module>

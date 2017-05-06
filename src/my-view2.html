@@ -1,0 +1,138 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../bower_components/iron-list/iron-list.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="my-view2">
+  <template>
+    <style include="shared-styles">
+       :host {
+        display: block;
+
+        padding: 10px;
+      }
+
+      paper-card {
+        width: 100%;
+        margin-bottom: 10px;
+        --paper-card-header-image-text: {
+          color: white;
+        }
+      }
+
+      paper-button {
+        color: var(--app-primary-color);
+      }
+
+      .card-actions paper-button {
+        font-size: 15px;
+      }
+
+      .description {
+        -webkit-margin-before: 0;
+      }
+
+      .moreInfo {
+        -webkit-margin-before: 0;
+        -webkit-margin-after: 0;
+      }
+
+      @media(min-width: 850px) {
+        .content {
+          margin-left: 15%;
+          margin-right: 15%;
+        }
+      }
+    </style>
+
+    <div class="content">
+      <template is="dom-repeat" items="[[newsData]]">
+        <div>
+          <paper-card heading="[[item.title]]" image="[[item.urlToImage]]" preload-image fade-image placeholder-image="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAFBQUFBVUFpkZFp9h3iHfbmqm5uquf/I18jXyP////////////////////////////////////////////////8BUFBQUFVQWmRkWn2HeId9uaqbm6q5/8jXyNfI///////////////////////////////////////////////////CABEIAdQB1AMBIgACEQEDEQH/xAAVAAEBAAAAAAAAAAAAAAAAAAAAAf/aAAgBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//EABQBAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//xAAUEAEAAAAAAAAAAAAAAAAAAACw/9oACAEBAAE/AFmf/8QAFBEBAAAAAAAAAAAAAAAAAAAAkP/aAAgBAgEBPwBhP//EABQRAQAAAAAAAAAAAAAAAAAAAJD/2gAIAQMBAT8AYT//2Q==">
+            <div class="card-content">
+              <p class="description">[[item.description]]</p>
+            </div>
+            <div class="card-actions">
+              <paper-button on-tap="share">
+                Share
+              </paper-button>
+              <paper-button on-tap="read">
+                Read
+              </paper-button>
+            </div>
+          </paper-card>
+        </div>
+      </template>
+    </div>
+
+  </template>
+
+  <script>
+    class MyView2 extends Polymer.Element {
+      static get is() { return 'my-view2'; }
+
+      static get properties() {
+        return {
+          newsData: {
+            type: Array,
+            value: null
+          }
+        }
+      }
+
+      connectedCallback() {
+        super.connectedCallback();
+
+        this.newsData = [];
+
+        fetch('https://newsapi.org/v1/articles?source=the-washington-post&apiKey=3f03728668574e6794634e6244b18091').then((response) => {
+          return response.json()
+        }).then((data) => {
+          console.log(data);
+          data.articles.forEach((story) => {
+            if (story.urlToImage.includes('https')) {
+              this.push('newsData', story);
+            }
+          });
+        });
+      }
+
+      share($event) {
+        console.log($event.model.__data);
+        const item = $event.model.__data.item;
+
+        if (navigator.share !== undefined) {
+          navigator.share({
+            title: "Represent",
+            text: `Check out this latest news item ${item.url}`,
+            url: window.location.href
+          }).then(() => console.log('Successful share'))
+            .catch(error => console.log('Error sharing:', error));
+        } else {
+          window.open(`http://twitter.com/share?text=Check out this latest news item I found on ${window.location.href}&url=${item.url}&hashtags=Represent`)
+        }
+      }
+
+      read($event) {
+        console.log($event.model.__data);
+        const item = $event.model.__data.item;
+        window.open(item.url);
+      }
+    }
+
+    window.customElements.define(MyView2.is, MyView2);
+  </script>
+</dom-module>
